@@ -6,9 +6,9 @@
 
 | 层 | 能力 | 来源 | 接入方式 | 生效范围 |
 |---|---|---|---|---|
-| 执行 | `mcpbridge` 26 个 Xcode MCP 工具 | `xcrun mcpbridge`（Xcode 26+，xcode-select 决定实例） | `dsh-mcp-client`（挂在新模式内） | 仅 Apple 开发模式会话 |
+| 执行 | `mcpbridge` 26 个 Xcode MCP 工具 | `xcrun mcpbridge`（Xcode 26+，xcode-select 决定实例） | `dsh-mcp-client`（挂在新模式内） | 仅 Apple Mode会话 |
 | 知识 | 10 个 Xcode 官方技能（swiftui-specialist、app-intents-specialist、audit-xcode-security-settings、device-interaction、modernize-tests、uikit-app-modernization、swiftui-whats-new-27、adopt-c-bounds-safety、app-intents-whats-new-27、building-document-based-swiftui-applications） | `xcrun agent skills export` | 放入 `~/.agents/skills/`（DSH 技能发现根，watch 自动生效） | 所有会话（懒加载，不占上下文） |
-| 行为 | Xcode Intelligence 系统提示词（ToolAssisted / Reasoning / PlannerExecutor 风格） | `IDEIntelligenceChat.framework/.../Resources` | 改编为 agent preset 的 persona | 仅 Apple 开发模式会话 |
+| 行为 | Xcode Intelligence 系统提示词（ToolAssisted / Reasoning / PlannerExecutor 风格） | `IDEIntelligenceChat.framework/.../Resources` | 改编为 agent preset 的 persona | 仅 Apple Mode会话 |
 
 ### MCP 工具清单（26 个，工具名 `mcp__xcode__*`）
 
@@ -37,7 +37,7 @@
 ```
 ~/.dsh/.agent-presets/apple/
 ├── agent.cordis.yml   # 组合文件：改编 persona + mcp-xcode 行 + standard 全量工具
-└── preset.yml         # 显示元数据（名称：Apple 开发模式）
+└── preset.yml         # 显示元数据（名称：Apple Mode）
 ```
 
 - 基于 `node_modules/@deepseek-ai/dsh/config/agent-presets/standard/agent.cordis.yml` 复制
@@ -47,7 +47,7 @@
 ## 四、使用方法
 
 1. **新建会话**（preset 只能在空白会话选择/切换）
-2. 在会话创建界面选择 **Apple 开发模式**
+2. 在会话创建界面选择 **Apple Mode**
 3. 会话即可使用：
    - `mcp__xcode__*` 26 个工具（需本机有 Xcode 实例在运行，`xcode-select` 决定连接目标）
    - 全部 Apple 平台技能（按需懒加载）

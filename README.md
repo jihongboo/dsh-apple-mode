@@ -20,7 +20,7 @@ The three capabilities map onto three different DSH mechanisms:
 | Knowledge | 10 Apple skills | `dsh-skill-filesystem` (global, lazy-loaded) |
 | Behavior | Xcode Intelligence persona | agent preset (this repo) |
 
-Wiring the MCP server **globally** would put ~26 large tool schemas (~6k+ tokens/request) into *every* session. Mounting it inside a **preset** keeps the cost only in sessions that opt in — pick **Apple 开发模式** when creating a session, and you get the whole stack; other sessions stay lean.
+Wiring the MCP server **globally** would put ~26 large tool schemas (~6k+ tokens/request) into *every* session. Mounting it inside a **preset** keeps the cost only in sessions that opt in — pick **Apple Mode** when creating a session, and you get the whole stack; other sessions stay lean.
 
 ## Requirements
 
@@ -74,7 +74,7 @@ Installs the `cordis.patch.yml` bundle, which wires the Xcode MCP server into **
 ## Usage
 
 1. Restart `dsh` (or just open a **new session** — the preset can only be selected on a blank session).
-2. Pick **Apple 开发模式** as the agent preset when creating the session.
+2. Pick **Apple Mode** as the agent preset when creating the session.
 3. The session now has:
    - `mcp__xcode__*` tools — operate the open Xcode workspace: `XcodeRead/Write/Update/MV/RM`, `XcodeGlob/Grep/LS`, `UpdateTargetBuildSetting`/`UpdateFileCompilerFlags`, `XcodeListNavigatorIssues`, scheme/run-destination/test-plan switching, `XcodeNewTarget`, `StringCatalogRead/Edit`, …
    - All Apple platform skills (lazy-loaded on demand).

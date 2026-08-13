@@ -1,2 +1,2 @@
-name: Apple 开发模式
-description: Xcode AI 集成模式 — 挂接 Xcode MCP 工具（mcpbridge）、Apple 平台技能与 Xcode Intelligence 工作方式。适合 Swift / SwiftUI / App Intents / UIKit / 安全审计等 Apple 平台开发。
+name: Apple Mode
+description: Xcode AI integration mode — Xcode MCP tools (mcpbridge), Apple platform skills, and an Xcode Intelligence-style working style. For Swift / SwiftUI / App Intents / UIKit / security-audit development.

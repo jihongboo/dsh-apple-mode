@@ -20,7 +20,7 @@
 | 知识 | 10 个 Apple 技能 | `dsh-skill-filesystem`（全局、懒加载） |
 | 行为 | Xcode Intelligence persona | agent preset（本仓库） |
 
-若把 MCP **全局**接入，26 个大工具 schema（约 6k+ tokens/请求）会常驻每一个会话。挂在 **preset** 内则只有选择该模式的会话背负成本——建会话时选 **Apple 开发模式**即获得全套能力，其他会话保持轻量。
+若把 MCP **全局**接入，26 个大工具 schema（约 6k+ tokens/请求）会常驻每一个会话。挂在 **preset** 内则只有选择该模式的会话背负成本——建会话时选 **Apple Mode**即获得全套能力，其他会话保持轻量。
 
 ## 环境要求
 
@@ -74,7 +74,7 @@ dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
 ## 使用方法
 
 1. 重启 `dsh`（或直接**新建会话**——preset 只能在空白会话选择）。
-2. 建会话时选择 **Apple 开发模式**。
+2. 建会话时选择 **Apple Mode**。
 3. 该会话即可使用：
    - `mcp__xcode__*` 工具——直接操作打开的 Xcode 工作区：`XcodeRead/Write/Update/MV/RM`、`XcodeGlob/Grep/LS`、`UpdateTargetBuildSetting`/`UpdateFileCompilerFlags`、`XcodeListNavigatorIssues`、scheme/运行目标/测试计划切换、`XcodeNewTarget`、`StringCatalogRead/Edit` 等
    - 全部 Apple 平台技能（按需懒加载）

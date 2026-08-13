@@ -261,7 +261,7 @@ cat <<EOF
 
 ==> [3/3] Done. Next steps:
   1. Restart dsh (or just open a NEW session).
-  2. Pick the "Apple 开发模式" agent preset when creating the session.
+  2. Pick the "Apple Mode" agent preset when creating the session.
   3. The mcp__xcode__* tools appear in that session (Xcode must be running).
 
 Change the Xcode later:
