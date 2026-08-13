@@ -1,0 +1,20 @@
+# dsh-apple-mode bundle patch — global Xcode MCP wiring.
+#
+# Installed via:  dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
+# Effect: every session gets the 26 mcp__xcode__* tools (global tools layer).
+#
+# This is the GLOBAL variant. The mode-based (agent preset) install lives in
+# presets/apple/ and is installed by ./install.sh. Use ONE of the two, not
+# both: each registers serverName 'xcode', and a duplicate serverName fails
+# the later instance at load.
+#
+# Requires Xcode 26+ on xcode-select (mcpbridge). To pin a specific Xcode
+# instance, add `env: { MCP_XCODE_PID: '<pid>' }` here.
+- id: mcp-xcode
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: xcode
+    transport: stdio
+    command: xcrun
+    args: ['mcpbridge']
+    toolCallTimeoutMs: 120000

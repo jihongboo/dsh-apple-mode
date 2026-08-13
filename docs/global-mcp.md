@@ -3,14 +3,22 @@
 The preset in this repo mounts `dsh-mcp-client` **only for sessions that pick
 the Apple mode**, which keeps ~26 large tool schemas (~6k+ tokens/request)
 out of ordinary sessions. If you prefer the MCP tools available everywhere
-(e.g. you only ever work on Apple projects), wire the server at the profile
-level instead.
+(e.g. you only ever work on Apple projects), use the global bundle instead.
 
-## Profile patch
+## Global bundle (supported)
 
-Add to `~/.dsh/profiles/web/cordis.patch.yml`:
+This repo ships a bundle manifest (`package.json` → `cordis.patch.yml`) that
+wires the server into every session of the profile:
+
+```sh
+dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
+```
+
+Restart `dsh --profile web`. Every session gets the `mcp__xcode__*` tools,
+regardless of preset. The bundle content is exactly:
 
 ```yaml
+# cordis.patch.yml in this repo
 - id: mcp-xcode
   name: '@deepseek-ai/dsh-mcp-client'
   config:
@@ -21,8 +29,10 @@ Add to `~/.dsh/profiles/web/cordis.patch.yml`:
     toolCallTimeoutMs: 120000
 ```
 
-Then restart `dsh --profile web`. Every session gets the `mcp__xcode__*`
-tools, regardless of preset.
+## Manual profile patch (equivalent)
+
+Add the same row to `~/.dsh/profiles/web/cordis.patch.yml` if you do not want
+to install the bundle package.
 
 ## Trade-offs
 
@@ -34,8 +44,10 @@ tools, regardless of preset.
 
 ## Notes
 
-- `serverName` must be unique across live instances; remove or rename the
-  `mcp-xcode` row from the preset's `agent.cordis.yml` if you also use the
-  preset (otherwise the two instances collide on the same `serverName`).
+- **Use one install path, not both.** The bundle and the preset each register
+  `serverName: xcode`; a duplicate `serverName` fails the later instance at
+  load. If you want both the mode persona and global tools, remove the
+  `mcp-xcode` row from `presets/apple/agent.cordis.yml` before installing the
+  bundle.
 - Requires Xcode 26+ on `xcode-select`; set `MCP_XCODE_PID` via `env` to pin a
   specific Xcode instance.

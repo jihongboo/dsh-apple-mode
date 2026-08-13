@@ -41,6 +41,14 @@ cd dsh-apple-mode
 
 > **为什么不直接打包技能？** 技能是 Apple 官方内容。安装时从你自己的 Xcode 生成可以避免重新分发 Apple 内容——仓库只包含我们自己的代码、配置和文档。
 
+### 备选：全局 bundle（所有会话接入 MCP）
+
+```sh
+dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
+```
+
+安装 `cordis.patch.yml` bundle，将 Xcode MCP 接入 profile 的**所有**会话——无需选择模式，代价是所有会话都背负工具 schema 的 token 成本。**两种安装方式二选一**：二者都注册 `serverName: xcode`，重复的 server 名会导致后加载的实例失败。详见 [docs/global-mcp.md](docs/global-mcp.md)。
+
 ## 使用方法
 
 1. 重启 `dsh`（或直接**新建会话**——preset 只能在空白会话选择）。
@@ -75,9 +83,11 @@ cd dsh-apple-mode
 ```text
 .
 ├── presets/apple/            # agent preset：agent.cordis.yml + preset.yml
+├── cordis.patch.yml          # 全局 MCP bundle 补丁（dsh plugin add）
+├── package.json              # bundle manifest（dsh.bundle.patch）
 ├── docs/
 │   ├── XCODE_AI_INTEGRATION.md  # 完整接入说明（中文）
-│   └── global-mcp.md            # 备选：把 MCP 接入所有会话
+│   └── global-mcp.md            # 全局 bundle 与 preset 的取舍
 ├── install.sh               # 安装 preset + 本地生成技能
 ├── uninstall.sh
 └── LICENSE                  # MIT

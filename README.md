@@ -41,6 +41,14 @@ cd dsh-apple-mode
 
 > **Why no vendored skills?** The skills are Apple-authored guidance. Generating them from your own Xcode at install time avoids redistributing Apple content — the repo ships only our own code, config, and docs.
 
+### Alternative: global bundle (MCP in every session)
+
+```sh
+dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
+```
+
+Installs the `cordis.patch.yml` bundle, which wires the Xcode MCP server into **every** session of the profile — no preset selection needed, at the cost of the tool-schema tokens in all sessions. **Use one install path, not both**: each registers `serverName: xcode`, and a duplicate server name fails the later instance at load. See [docs/global-mcp.md](docs/global-mcp.md).
+
 ## Usage
 
 1. Restart `dsh` (or just open a **new session** — the preset can only be selected on a blank session).
