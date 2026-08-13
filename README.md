@@ -1,5 +1,7 @@
 # dsh-apple-mode
 
+[English](README.md) · [简体中文](README.zh.md)
+
 **Xcode AI integration mode for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`)** — an agent preset + installer that gives your DSH sessions the full Xcode AI stack:
 
 - **26 Xcode MCP tools** (`mcp__xcode__*`) via Apple's official `mcpbridge`
@@ -24,7 +26,7 @@ Wiring the MCP server **globally** would put ~26 large tool schemas (~6k+ tokens
 
 - macOS
 - [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): `npx @deepseek-ai/dsh web`
-- Xcode 26+ (contains `mcpbridge` and `xcrun agent skills export`; Xcode must be running for tool calls)
+- Xcode 26+ (contains `mcpbridge` and `xcrun agent skills export`). To use the MCP tools, Xcode must be **running with the target project open**, and you must click **Allow** on the MCP access dialog Xcode shows (see [Usage](#usage)).
 
 ## Install
 
@@ -77,6 +79,10 @@ Installs the `cordis.patch.yml` bundle, which wires the Xcode MCP server into **
    - `mcp__xcode__*` tools — operate the open Xcode workspace: `XcodeRead/Write/Update/MV/RM`, `XcodeGlob/Grep/LS`, `UpdateTargetBuildSetting`/`UpdateFileCompilerFlags`, `XcodeListNavigatorIssues`, scheme/run-destination/test-plan switching, `XcodeNewTarget`, `StringCatalogRead/Edit`, …
    - All Apple platform skills (lazy-loaded on demand).
    - An Apple-first, tool-assisted working style.
+
+> **Before using the `mcp__xcode__*` tools:**
+> 1. Xcode must be **running** with the project/workspace you want to work on **opened** in it.
+> 2. On first connection, Xcode shows an **MCP access dialog** — click **Allow** (允许). Until you do, tool calls will be rejected.
 
 Build/run/test still happen from the terminal (`xcodebuild`, pipe through [`xcsift`](https://github.com/...) for structured output); the MCP toolset covers project surgery, build settings, diagnostics, destinations, and localization.
 

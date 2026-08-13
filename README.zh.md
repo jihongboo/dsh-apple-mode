@@ -1,5 +1,7 @@
 # dsh-apple-mode
 
+[English](README.md) · [简体中文](README.zh.md)
+
 **DeepSeek Harness（`dsh`）的 Xcode AI 集成模式** —— 一个 agent preset（模式）+ 安装脚本，让 DSH 会话获得完整的 Xcode AI 能力栈：
 
 - **26 个 Xcode MCP 工具**（`mcp__xcode__*`），通过 Apple 官方 `mcpbridge` 桥接
@@ -24,7 +26,7 @@
 
 - macOS
 - [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：`npx @deepseek-ai/dsh web`
-- Xcode 26+（含 `mcpbridge` 与 `xcrun agent skills export`；工具调用时 Xcode 需在运行）
+- Xcode 26+（含 `mcpbridge` 与 `xcrun agent skills export`）。使用 MCP 工具时，需要保证 **Xcode 已启动并打开了相应的项目**，并且在 Xcode 弹出的 MCP 接入对话框中点击**允许**（见[使用方法](#使用方法)）。
 
 ## 安装
 
@@ -77,6 +79,10 @@ dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
    - `mcp__xcode__*` 工具——直接操作打开的 Xcode 工作区：`XcodeRead/Write/Update/MV/RM`、`XcodeGlob/Grep/LS`、`UpdateTargetBuildSetting`/`UpdateFileCompilerFlags`、`XcodeListNavigatorIssues`、scheme/运行目标/测试计划切换、`XcodeNewTarget`、`StringCatalogRead/Edit` 等
    - 全部 Apple 平台技能（按需懒加载）
    - Apple 优先、工具辅助的工作方式
+
+> **使用 `mcp__xcode__*` 工具之前：**
+> 1. 需要保证 **Xcode 已启动**，并且在其中**打开了要操作的项目/工作区**。
+> 2. 首次建立连接时，Xcode 会弹出 **MCP 接入对话框**——请点击**允许**。在点击允许之前，工具调用会被拒绝。
 
 构建/运行/测试仍在终端进行（`xcodebuild`，建议管道到 `xcsift` 获得结构化输出）；MCP 工具集负责工程手术、构建设置、诊断、运行目标与本地化。
 
