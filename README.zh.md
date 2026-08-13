@@ -1,4 +1,4 @@
-# dsh-apple-xcode
+# dsh-apple-mode
 
 **DeepSeek Harness（`dsh`）的 Xcode AI 集成模式** —— 一个 agent preset（模式）+ 安装脚本，让 DSH 会话获得完整的 Xcode AI 能力栈：
 
@@ -29,8 +29,8 @@
 ## 安装
 
 ```sh
-git clone https://github.com/jihongboo/dsh-apple-xcode.git
-cd dsh-apple-xcode
+git clone https://github.com/jihongboo/dsh-apple-mode.git
+cd dsh-apple-mode
 ./install.sh
 ```
 

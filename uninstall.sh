@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# dsh-apple-xcode uninstaller
+# dsh-apple-mode uninstaller
 # Removes the `apple` agent preset and the Xcode-exported skills that
 # install.sh placed into the DSH skill root.
 #

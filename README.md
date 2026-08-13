@@ -1,4 +1,4 @@
-# dsh-apple-xcode
+# dsh-apple-mode
 
 **Xcode AI integration mode for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`)** — an agent preset + installer that gives your DSH sessions the full Xcode AI stack:
 
@@ -29,8 +29,8 @@ Wiring the MCP server **globally** would put ~26 large tool schemas (~6k+ tokens
 ## Install
 
 ```sh
-git clone https://github.com/jihongboo/dsh-apple-xcode.git
-cd dsh-apple-xcode
+git clone https://github.com/jihongboo/dsh-apple-mode.git
+cd dsh-apple-mode
 ./install.sh
 ```
 

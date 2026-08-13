@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# dsh-apple-xcode installer
+# dsh-apple-mode installer
 #
 #   1. Installs the `apple` agent preset into DSH's harness home
 #      (~/.dsh/.agent-presets/apple).
