@@ -34,12 +34,32 @@ cd dsh-apple-mode
 ./install.sh
 ```
 
-`install.sh` does two things:
+`install.sh` does three things:
 
-1. Installs the `apple` agent preset → `~/.dsh/.agent-presets/apple/` (existing copy is backed up).
-2. Generates the 10 Xcode AI skills **on your machine** via `xcrun agent skills export` and merges them into `~/.agents/skills/` (the DSH skill root, hot-reloaded by the filesystem watcher).
+1. **Detects your Xcode installs and lets you choose which one provides `mcpbridge`** (see below).
+2. Installs the `apple` agent preset → `~/.dsh/.agent-presets/apple/` (existing copy is backed up).
+3. Generates the 10 Xcode AI skills **on your machine** via `xcrun agent skills export` and merges them into `~/.agents/skills/` (the DSH skill root, hot-reloaded by the filesystem watcher).
 
 > **Why no vendored skills?** The skills are Apple-authored guidance. Generating them from your own Xcode at install time avoids redistributing Apple content — the repo ships only our own code, config, and docs.
+
+### Choosing an Xcode (multiple installs)
+
+If you have several Xcode versions (e.g. `Xcode.app`, `Xcode-beta.app`, `Xcode-26.2.app`), `mcpbridge` lives in each one's `Contents/Developer/usr/bin` — and only in Xcode 26+. `install.sh` scans `/Applications` for every install that provides it and prompts you to pick:
+
+```text
+Found Xcode installs providing mcpbridge:
+  1) /Applications/Xcode-beta.app/Contents/Developer  (xcode-select default)
+  2) /Applications/Xcode.app/Contents/Developer
+Choose (1-2, default 1):
+```
+
+- **Default** = the Xcode selected by `xcode-select` → the preset uses `command: xcrun mcpbridge` (portable; follows future `xcode-select` changes).
+- **Pick another** → the chosen `…/Contents/Developer/usr/bin/mcpbridge` is baked into the installed preset as an absolute path.
+- **Non-interactive**: `./install.sh --xcode /Applications/Xcode.app` (or `--xcode …/Contents/Developer`); `./install.sh --list-xcodes` prints the candidates.
+- **Switch at runtime without reinstalling**: `./install.sh --runtime-selectable` installs `bin/mcpbridge` as the command; set `DSH_XCODE_DEVELOPER_DIR=/Applications/…/Contents/Developer` when launching `dsh` to switch. (Resolution: `DSH_XCODE_DEVELOPER_DIR` → `xcrun` → newest `/Applications/Xcode*.app`.)
+- **Drive a specific running Xcode instance**: add `env: { MCP_XCODE_PID: '<pid>' }` to the `mcp-xcode` row of the installed preset.
+
+To change the choice later: re-run `./install.sh`, edit the `mcp-xcode` row in `~/.dsh/.agent-presets/apple/agent.cordis.yml`, or use the runtime env var above.
 
 ### Alternative: global bundle (MCP in every session)
 
@@ -83,17 +103,20 @@ Build/run/test still happen from the terminal (`xcodebuild`, pipe through [`xcsi
 ```text
 .
 ├── presets/apple/            # The agent preset: agent.cordis.yml + preset.yml
+├── bin/mcpbridge             # Runtime-selectable mcpbridge launcher (--runtime-selectable)
+├── cordis.patch.yml          # Global-MCP bundle patch (dsh plugin add)
+├── package.json              # Bundle manifest (dsh.bundle.patch)
 ├── docs/
 │   ├── XCODE_AI_INTEGRATION.md  # Full integration notes (Chinese)
 │   └── global-mcp.md            # Alternative: wire the MCP server into every session
-├── install.sh               # Preset install + local skills generation
+├── install.sh               # Xcode picker + preset install + local skills generation
 ├── uninstall.sh
 └── LICENSE                  # MIT
 ```
 
 ## Customization
 
-- **Different Xcode instance:** add `env: { MCP_XCODE_PID: '<pid>' }` to the `mcp-xcode` row in `presets/apple/agent.cordis.yml`.
+- **Different Xcode:** re-run `./install.sh` (picker), `./install.sh --xcode <path>` (non-interactive), `--runtime-selectable` + `DSH_XCODE_DEVELOPER_DIR`, or add `env: { MCP_XCODE_PID: '<pid>' }` to the `mcp-xcode` row to drive a specific running instance. See [Choosing an Xcode](#choosing-an-xcode-multiple-installs).
 - **Persona:** edit the `persona` row text in the same file.
 - **Sync skills after Xcode updates:** re-run `./install.sh` (skills are replaced, preset is backed up).
 - **Keep in sync with upstream `standard` preset:** `diff` against `node_modules/@deepseek-ai/dsh/config/agent-presets/standard/agent.cordis.yml`.

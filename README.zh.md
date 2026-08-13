@@ -34,12 +34,32 @@ cd dsh-apple-mode
 ./install.sh
 ```
 
-`install.sh` 做两件事：
+`install.sh` 做三件事：
 
-1. 安装 `apple` agent preset → `~/.dsh/.agent-presets/apple/`（已有副本自动备份）。
-2. 通过 `xcrun agent skills export` **在你机器上本地生成** 10 个 Xcode 技能并合并进 `~/.agents/skills/`（DSH 技能根目录，watcher 热加载即时生效）。
+1. **检测你机器上的 Xcode，并让你选择由哪个提供 `mcpbridge`**（见下文）。
+2. 安装 `apple` agent preset → `~/.dsh/.agent-presets/apple/`（已有副本自动备份）。
+3. 通过 `xcrun agent skills export` **在你机器上本地生成** 10 个 Xcode 技能并合并进 `~/.agents/skills/`（DSH 技能根目录，watcher 热加载即时生效）。
 
 > **为什么不直接打包技能？** 技能是 Apple 官方内容。安装时从你自己的 Xcode 生成可以避免重新分发 Apple 内容——仓库只包含我们自己的代码、配置和文档。
+
+### 选择 Xcode（多版本共存）
+
+如果装了多个 Xcode（如 `Xcode.app`、`Xcode-beta.app`、`Xcode-26.2.app`），`mcpbridge` 位于各自的 `Contents/Developer/usr/bin`——且只有 Xcode 26+ 才有。`install.sh` 会扫描 `/Applications` 下所有包含 mcpbridge 的安装并提示你选择：
+
+```text
+Found Xcode installs providing mcpbridge:
+  1) /Applications/Xcode-beta.app/Contents/Developer  (xcode-select default)
+  2) /Applications/Xcode.app/Contents/Developer
+Choose (1-2, default 1):
+```
+
+- **默认** = `xcode-select` 选中的 Xcode → preset 使用 `command: xcrun mcpbridge`（可移植，跟随 `xcode-select` 变化）。
+- **选择其他** → 所选 `…/Contents/Developer/usr/bin/mcpbridge` 以绝对路径写进安装后的 preset。
+- **非交互**：`./install.sh --xcode /Applications/Xcode.app`（或 `--xcode …/Contents/Developer`）；`./install.sh --list-xcodes` 列出候选。
+- **运行时切换、无需重装**：`./install.sh --runtime-selectable` 安装 `bin/mcpbridge` 作为命令；启动 `dsh` 时设置 `DSH_XCODE_DEVELOPER_DIR=/Applications/…/Contents/Developer` 即可切换。（解析顺序：`DSH_XCODE_DEVELOPER_DIR` → `xcrun` → 最新的 `/Applications/Xcode*.app`。）
+- **指定某个正在运行的 Xcode 实例**：在安装后的 preset 的 `mcp-xcode` 行加 `env: { MCP_XCODE_PID: '<pid>' }`。
+
+之后想改：重跑 `./install.sh`、编辑 `~/.dsh/.agent-presets/apple/agent.cordis.yml` 的 `mcp-xcode` 行，或用上面的运行时环境变量。
 
 ### 备选：全局 bundle（所有会话接入 MCP）
 
@@ -83,6 +103,7 @@ dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
 ```text
 .
 ├── presets/apple/            # agent preset：agent.cordis.yml + preset.yml
+├── bin/mcpbridge             # 运行时切换用的 mcpbridge 启动器（--runtime-selectable）
 ├── cordis.patch.yml          # 全局 MCP bundle 补丁（dsh plugin add）
 ├── package.json              # bundle manifest（dsh.bundle.patch）
 ├── docs/
@@ -95,7 +116,7 @@ dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
 
 ## 自定义
 
-- **指定 Xcode 实例**：在 `presets/apple/agent.cordis.yml` 的 `mcp-xcode` 行加 `env: { MCP_XCODE_PID: '<pid>' }`。
+- **更换 Xcode**：重跑 `./install.sh`（选择器）、`./install.sh --xcode <路径>`（非交互）、`--runtime-selectable` + `DSH_XCODE_DEVELOPER_DIR`，或在 `mcp-xcode` 行加 `env: { MCP_XCODE_PID: '<pid>' }` 指定某个正在运行的实例。详见[选择 Xcode（多版本共存）](#选择-xcode多版本共存)。
 - **persona**：编辑同文件的 `persona` 行文本。
 - **Xcode 升级后同步技能**：重跑 `./install.sh`（技能整体替换，preset 自动备份）。
 - **对齐上游 standard preset**：与 `node_modules/@deepseek-ai/dsh/config/agent-presets/standard/agent.cordis.yml` 做 `diff`。

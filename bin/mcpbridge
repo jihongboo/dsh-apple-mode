@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Runtime-selectable mcpbridge launcher for the dsh-apple-mode preset.
+#
+# Lets the user choose which Xcode provides mcpbridge without re-running
+# install.sh. Resolution order:
+#
+#   1. $DSH_XCODE_DEVELOPER_DIR (or $DEVELOPER_DIR) — user-chosen developer dir,
+#      e.g.  DSH_XCODE_DEVELOPER_DIR=/Applications/Xcode-26.2.app/Contents/Developer
+#   2. xcrun mcpbridge — the Xcode selected by xcode-select
+#   3. Newest /Applications/Xcode*.app that contains mcpbridge
+#
+# The MCP server still connects to a specific *running* Xcode instance via the
+# MCP_XCODE_PID environment variable (set it in the preset's env config).
+#
+set -euo pipefail
+
+dev_dir="${DSH_XCODE_DEVELOPER_DIR:-${DEVELOPER_DIR:-}}"
+if [ -n "$dev_dir" ]; then
+  candidate="$dev_dir/usr/bin/mcpbridge"
+  if [ ! -x "$candidate" ]; then
+    echo "dsh-apple-mode: mcpbridge not found in \$DSH_XCODE_DEVELOPER_DIR ($dev_dir)" >&2
+    exit 1
+  fi
+  exec "$candidate" "$@"
+fi
+
+if xcrun --find mcpbridge >/dev/null 2>&1; then
+  exec xcrun mcpbridge "$@"
+fi
+
+for app in /Applications/Xcode*.app; do
+  candidate="$app/Contents/Developer/usr/bin/mcpbridge"
+  if [ -x "$candidate" ]; then
+    exec "$candidate" "$@"
+  fi
+done
+
+echo "dsh-apple-mode: no Xcode with mcpbridge found (need Xcode 26+)." >&2
+echo "  Set DSH_XCODE_DEVELOPER_DIR to an Xcode developer dir that has it." >&2
+exit 1

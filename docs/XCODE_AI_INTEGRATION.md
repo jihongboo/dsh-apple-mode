@@ -59,6 +59,7 @@
 - 预设发现：GUI 的 preset 列表在打开时会重新读取磁盘（无需重启），新预设立即出现
 - MCP 连接失败不影响模式加载（`failOnStartupError: false`）；断线自动重连（指数退避）
 - 指定特定 Xcode 实例：在 `agent.cordis.yml` 的 `mcp-xcode` 行加 `env: { MCP_XCODE_PID: '<pid>' }`
+- 多 Xcode 共存：`install.sh` 会扫描并提示选择 mcpbridge 来源（`--xcode` 非交互）；`--runtime-selectable` 安装 `bin/mcpbridge` 启动器，之后用 `DSH_XCODE_DEVELOPER_DIR` 运行时切换
 - 工具调用超时已调至 120s（`toolCallTimeoutMs`）
 
 ## 六、安全注意
