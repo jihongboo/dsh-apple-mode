@@ -1,0 +1,104 @@
+# dsh-apple-xcode
+
+**DeepSeek Harness（`dsh`）的 Xcode AI 集成模式** —— 一个 agent preset（模式）+ 安装脚本，让 DSH 会话获得完整的 Xcode AI 能力栈：
+
+- **26 个 Xcode MCP 工具**（`mcp__xcode__*`），通过 Apple 官方 `mcpbridge` 桥接
+- **Xcode Intelligence 风格的 persona**（Swift 优先、工具辅助、解释/改动分流），改编自 `IDEIntelligenceChat` 提示词模板
+- **10 个 Apple 平台技能**（SwiftUI、App Intents、安全加固、bounds safety 等），安装时从你自己的 Xcode 本地生成
+
+> 📌 `dsh-plugin` 话题仓库。DeepSeek Harness 处于开发者预览阶段，自动化场景请锁定具体版本。
+
+## 为什么用"模式（preset）"而不是全局接入 MCP？
+
+三样能力在 DSH 里对应三个不同机制：
+
+| 层 | 能力 | DSH 机制 |
+|---|---|---|
+| 执行 | 26 个 `mcp__xcode__*` 工具 | `dsh-mcp-client`（挂在 preset 内） |
+| 知识 | 10 个 Apple 技能 | `dsh-skill-filesystem`（全局、懒加载） |
+| 行为 | Xcode Intelligence persona | agent preset（本仓库） |
+
+若把 MCP **全局**接入，26 个大工具 schema（约 6k+ tokens/请求）会常驻每一个会话。挂在 **preset** 内则只有选择该模式的会话背负成本——建会话时选 **Apple 开发模式**即获得全套能力，其他会话保持轻量。
+
+## 环境要求
+
+- macOS
+- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：`npx @deepseek-ai/dsh web`
+- Xcode 26+（含 `mcpbridge` 与 `xcrun agent skills export`；工具调用时 Xcode 需在运行）
+
+## 安装
+
+```sh
+git clone https://github.com/jihongboo/dsh-apple-xcode.git
+cd dsh-apple-xcode
+./install.sh
+```
+
+`install.sh` 做两件事：
+
+1. 安装 `apple` agent preset → `~/.dsh/.agent-presets/apple/`（已有副本自动备份）。
+2. 通过 `xcrun agent skills export` **在你机器上本地生成** 10 个 Xcode 技能并合并进 `~/.agents/skills/`（DSH 技能根目录，watcher 热加载即时生效）。
+
+> **为什么不直接打包技能？** 技能是 Apple 官方内容。安装时从你自己的 Xcode 生成可以避免重新分发 Apple 内容——仓库只包含我们自己的代码、配置和文档。
+
+## 使用方法
+
+1. 重启 `dsh`（或直接**新建会话**——preset 只能在空白会话选择）。
+2. 建会话时选择 **Apple 开发模式**。
+3. 该会话即可使用：
+   - `mcp__xcode__*` 工具——直接操作打开的 Xcode 工作区：`XcodeRead/Write/Update/MV/RM`、`XcodeGlob/Grep/LS`、`UpdateTargetBuildSetting`/`UpdateFileCompilerFlags`、`XcodeListNavigatorIssues`、scheme/运行目标/测试计划切换、`XcodeNewTarget`、`StringCatalogRead/Edit` 等
+   - 全部 Apple 平台技能（按需懒加载）
+   - Apple 优先、工具辅助的工作方式
+
+构建/运行/测试仍在终端进行（`xcodebuild`，建议管道到 `xcsift` 获得结构化输出）；MCP 工具集负责工程手术、构建设置、诊断、运行目标与本地化。
+
+## 内容清单
+
+### MCP 工具（26 个，命名空间 `mcp__xcode__*`）
+
+| 分组 | 工具 |
+|---|---|
+| 工程读写 | `XcodeRead` `XcodeWrite` `XcodeUpdate` `XcodeMV` `XcodeRM` `XcodeMakeDir` |
+| 检索 | `XcodeGlob` `XcodeGrep` `XcodeLS` |
+| 目标与设置 | `XcodeNewTarget` `XcodeListTemplates` `XcodeListTargets` `UpdateTargetBuildSetting` `UpdateFileCompilerFlags` |
+| Scheme/运行/测试 | `XcodeListSchemes` `XcodeSwitchScheme` `XcodeListRunDestinations` `XcodeSwitchRunDestination` `XcodeListTestPlans` `XcodeSwitchTestPlan` |
+| 诊断 | `XcodeListNavigatorIssues` `XcodeRefreshCodeIssuesInFile` |
+| 本地化 | `StringCatalogRead` `StringCatalogEdit` |
+| 窗口 | `XcodeListWindows` `XcodeGetCurrentFile` |
+
+### 技能（10 个，安装时生成）
+
+`swiftui-specialist` · `swiftui-whats-new-27` · `app-intents-specialist` · `app-intents-whats-new-27` · `audit-xcode-security-settings` · `adopt-c-bounds-safety` · `uikit-app-modernization` · `modernize-tests` · `device-interaction` · `building-document-based-swiftui-applications`
+
+## 仓库结构
+
+```text
+.
+├── presets/apple/            # agent preset：agent.cordis.yml + preset.yml
+├── docs/
+│   ├── XCODE_AI_INTEGRATION.md  # 完整接入说明（中文）
+│   └── global-mcp.md            # 备选：把 MCP 接入所有会话
+├── install.sh               # 安装 preset + 本地生成技能
+├── uninstall.sh
+└── LICENSE                  # MIT
+```
+
+## 自定义
+
+- **指定 Xcode 实例**：在 `presets/apple/agent.cordis.yml` 的 `mcp-xcode` 行加 `env: { MCP_XCODE_PID: '<pid>' }`。
+- **persona**：编辑同文件的 `persona` 行文本。
+- **Xcode 升级后同步技能**：重跑 `./install.sh`（技能整体替换，preset 自动备份）。
+- **对齐上游 standard preset**：与 `node_modules/@deepseek-ai/dsh/config/agent-presets/standard/agent.cordis.yml` 做 `diff`。
+
+## 安全说明
+
+- MCP 工具调用**不经过 DSH 文件沙箱**，走工具级审批流程。`XcodeUpdate`/`XcodeWrite` 会直接修改真实 Xcode 工程文件（含 `project.pbxproj`）。
+- preset 仅在你主动选择时激活；`install.sh` 不触碰任何全局配置。
+
+## 参与贡献
+
+欢迎 PR 与 issue。如果你发布自己的 DSH 扩展，请打上 [`dsh-plugin`](https://github.com/topics/dsh-plugin) 话题，并考虑提交到 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)。
+
+## 许可证
+
+[MIT](LICENSE)。Xcode AI 技能由安装脚本在你的机器上从你自己的 Xcode 生成，仍受 Apple 许可约束；persona 提示词风格改编自 Xcode Intelligence 模板（行为指导，非 Apple 源码文本）。
