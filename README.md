@@ -38,7 +38,15 @@ Install the plugin with the plugin manager. Its bundle patch declares the **Appl
 dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
 ```
 
+Pin a released version by appending a tag — recommended for reproducibility, since an install without a tag tracks the default branch:
+
+```sh
+dsh plugin --profile web add "github:jihongboo/dsh-apple-mode#v1.1.1"
+```
+
 (In the desktop app: **Settings → Plugins → install from GitHub**.) Restart DSH, then pick **Apple Mode** when creating a session.
+
+> **About the plugin manager's pnpm warning.** This package is configuration-only — no `scripts`, no dependencies, no build step (see `package.json`). If a registry page warns that pnpm ≥ 10 refuses to run git-dependency `prepare` scripts and suggests adding `allowBuilds` to `pnpm-workspace.yaml`, you can safely skip it: there is nothing to build or execute, and granting it would only widen the authorization surface for no benefit. Publishing to npm (see [docs/publishing.md](docs/publishing.md)) removes the warning entirely.
 
 Then generate the Apple skills locally — the plugin deliberately does not redistribute them:
 
@@ -165,7 +173,8 @@ Build/run/test still happen from the terminal (`xcodebuild`, pipe through [`xcsi
 ├── package.json              # Bundle manifest (dsh.bundle.patch)
 ├── docs/
 │   ├── XCODE_AI_INTEGRATION.md  # Full integration notes (Chinese)
-│   └── global-mcp.md            # Alternative: wire the MCP server into every session
+│   ├── global-mcp.md            # Alternative: wire the MCP server into every session
+│   └── publishing.md            # Publishing this package to npm
 ├── install.sh               # Xcode picker + preset install + local skills generation
 ├── uninstall.sh
 └── LICENSE                  # MIT

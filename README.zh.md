@@ -38,7 +38,15 @@
 dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
 ```
 
+追加 tag 可锁定已发布版本——推荐这么做，因为不带 tag 的安装会跟随默认分支：
+
+```sh
+dsh plugin --profile web add "github:jihongboo/dsh-apple-mode#v1.1.1"
+```
+
 （桌面端：**设置 → 插件 → 从 GitHub 安装**。）重启 DSH，新建会话时选择 **Apple Mode**。
+
+> **关于插件管理器的 pnpm 警告**：本包是纯配置包——没有 `scripts`、没有依赖、没有构建步骤（见 `package.json`）。如果市场页提示"pnpm ≥ 10 拒绝执行 git 依赖的 `prepare` 脚本，需要在 `pnpm-workspace.yaml` 里写 `allowBuilds`"，可以放心跳过：本包没有任何需要构建或执行的代码，授权只会无谓地扩大授权面。发布到 npm（见 [docs/publishing.md](docs/publishing.md)）后该警告会彻底消失。
 
 然后本地生成 Apple 技能——插件刻意不重新分发它们：
 
@@ -165,7 +173,8 @@ preset 把约 26 个工具 schema 限定在 Apple Mode 会话内。若希望**�
 ├── package.json              # bundle manifest（dsh.bundle.patch）
 ├── docs/
 │   ├── XCODE_AI_INTEGRATION.md  # 完整接入说明（中文）
-│   └── global-mcp.md            # 全局 bundle 与 preset 的取舍
+│   ├── global-mcp.md            # 全局 bundle 与 preset 的取舍
+│   └── publishing.md            # 发布到 npm 的步骤
 ├── install.sh               # 安装 preset + 本地生成技能
 ├── uninstall.sh
 └── LICENSE                  # MIT

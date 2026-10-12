@@ -1,8 +1,39 @@
 {
   "name": "dsh-apple-mode",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Apple Mode for DeepSeek Harness: an agent preset declaring 26 Xcode MCP tools (mcpbridge), Apple platform skills and an Xcode Intelligence-style persona. Requires DSH 0.2.0+ for the preset; DSH 0.1.x uses install.sh.",
   "license": "MIT",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "agent-preset",
+    "xcode",
+    "mcp",
+    "mcpbridge",
+    "apple",
+    "swift",
+    "swiftui"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jihongboo/dsh-apple-mode.git"
+  },
+  "homepage": "https://github.com/jihongboo/dsh-apple-mode#readme",
+  "bugs": {
+    "url": "https://github.com/jihongboo/dsh-apple-mode/issues"
+  },
+  "os": [
+    "darwin"
+  ],
+  "files": [
+    "cordis.patch.yml",
+    "presets",
+    "bin",
+    "docs",
+    "install.sh",
+    "uninstall.sh"
+  ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
