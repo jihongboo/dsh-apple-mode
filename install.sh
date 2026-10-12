@@ -2,22 +2,28 @@
 #
 # dsh-apple-mode installer
 #
-#   1. Detects the Xcode installs on this Mac that provide `mcpbridge`
-#      (Xcode 26+) and lets you choose which one to use — or pass --xcode.
-#      The chosen command is baked into the installed preset, so the default
-#      preset in presets/apple/ stays portable (xcrun / xcode-select).
-#   2. Installs the `apple` agent preset into DSH's harness home
-#      (~/.dsh/.agent-presets/apple).
-#   3. Generates the Xcode AI skills LOCALLY on your machine via
-#      `xcrun agent skills export` and merges them into the DSH skill root
-#      (~/.agents/skills). Apple-authored skill content is produced from your
-#      own Xcode installation — nothing is redistributed by this repository.
+# Two things live in this repo, and which one you need depends on your DSH version:
+#
+#   DSH 0.2.0+ (desktop app / current)
+#     Install the plugin with the plugin manager — its bundle patch declares the
+#     "Apple Mode" agent preset (0.2 no longer scans preset directories):
+#         dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
+#     Then run this script with --skills-only to generate the Xcode AI skills.
+#
+#   DSH 0.1.x (on-disk presets)
+#     Run this script with no flags: it detects the Xcode installs that provide
+#     `mcpbridge`, installs the `apple` preset into ~/.dsh/.agent-presets/apple,
+#     and generates the skills.
+#
+# Skills are always generated LOCALLY via `xcrun agent skills export` and merged
+# into ~/.agents/skills; Apple-authored content is never redistributed.
 #
 # Options:
-#   --xcode <app-or-developer-dir>   Use this Xcode non-interactively.
+#   --skills-only                    Only generate/refresh skills (the DSH 0.2+ path).
+#   --xcode <app-or-developer-dir>   Use this Xcode non-interactively for the preset.
 #                                    Accepts "/Applications/Xcode-26.2.app" or
 #                                    ".../Contents/Developer".
-#   --runtime-selectable             Install bin/mcpbridge as the command and
+#   --runtime-selectable             Install bin/mcpbridge as the preset's command and
 #                                    switch Xcode later via
 #                                    DSH_XCODE_DEVELOPER_DIR (no reinstall).
 #   --list-xcodes                    Print detected mcpbridge-capable Xcode
@@ -40,10 +46,11 @@ TEMPLATE_PRESET="$repo_dir/presets/apple"
 
 XCODE_DIR=""
 RUNTIME_SELECTABLE=false
+DO_PRESET=true
 DO_SKILLS=true
 
 usage() {
-  sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,/^set -euo pipefail$/p' "${BASH_SOURCE[0]}" | sed '$d' | sed 's/^# \{0,1\}//'
   exit 0
 }
 
@@ -54,6 +61,7 @@ while [ $# -gt 0 ]; do
     --xcode=*) XCODE_DIR="${1#*=}"; shift ;;
     --runtime-selectable) RUNTIME_SELECTABLE=true; shift ;;
     --list-xcodes) LIST_ONLY=true; shift ;;
+    --skills-only) DO_PRESET=false; shift ;;
     --no-skills) DO_SKILLS=false; shift ;;
     -h|--help) usage ;;
     *) echo "unknown option: $1" >&2; usage ;;
@@ -103,6 +111,8 @@ if [ "${LIST_ONLY:-false}" = true ]; then
   fi
   exit 0
 fi
+
+if [ "$DO_PRESET" = true ]; then
 
 # ── choose ───────────────────────────────────────────────────────────────────
 if [ -n "$XCODE_DIR" ]; then
@@ -225,6 +235,13 @@ elif [ -z "$chosen" ] || { [ -n "$default_dir" ] && [ "$chosen" = "$default_dir"
   echo "    mcpbridge source: xcrun (xcode-select default → ${default_dir:-<unset>})"
 else
   echo "    mcpbridge source: $chosen/usr/bin/mcpbridge"
+fi
+
+else
+  echo "==> [1/3] Skipped on-disk preset install (--skills-only)."
+  echo "    DSH 0.2.0+ declares \"Apple Mode\" through the plugin bundle; install it with:"
+  echo "      dsh plugin --profile web add \"github:jihongboo/dsh-apple-mode\""
+  echo "    then restart dsh and pick Apple Mode for a new session."
 fi
 
 # ── skills ───────────────────────────────────────────────────────────────────

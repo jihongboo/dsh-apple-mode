@@ -25,10 +25,30 @@ Wiring the MCP server **globally** would put ~26 large tool schemas (~6k+ tokens
 ## Requirements
 
 - macOS
-- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): `npx @deepseek-ai/dsh web`
+- **DeepSeek Harness 0.2.0+** for the plugin path (the desktop app ships 0.2.x). DSH 0.1.x uses the legacy on-disk preset through `install.sh` — see [Version compatibility](#version-compatibility).
 - Xcode 26+ (contains `mcpbridge` and `xcrun agent skills export`). To use the MCP tools, Xcode must be **running with the target project open**, and you must click **Allow** on the MCP access dialog Xcode shows (see [Usage](#usage)).
 
 ## Install
+
+### DSH 0.2.0+ (desktop app / current) — recommended
+
+Install the plugin with the plugin manager. Its bundle patch declares the **Apple Mode** agent preset:
+
+```sh
+dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
+```
+
+(In the desktop app: **Settings → Plugins → install from GitHub**.) Restart DSH, then pick **Apple Mode** when creating a session.
+
+Then generate the Apple skills locally — the plugin deliberately does not redistribute them:
+
+```sh
+git clone https://github.com/jihongboo/dsh-apple-mode.git
+cd dsh-apple-mode
+./install.sh --skills-only
+```
+
+### DSH 0.1.x — legacy on-disk preset
 
 ```sh
 git clone https://github.com/jihongboo/dsh-apple-mode.git
@@ -36,17 +56,39 @@ cd dsh-apple-mode
 ./install.sh
 ```
 
-`install.sh` does three things:
+`install.sh` then does three things:
 
 1. **Detects your Xcode installs and lets you choose which one provides `mcpbridge`** (see below).
-2. Installs the `apple` agent preset → `~/.dsh/.agent-presets/apple/` (existing copy is backed up).
-3. Generates the 10 Xcode AI skills **on your machine** via `xcrun agent skills export` and merges them into `~/.agents/skills/` (the DSH skill root, hot-reloaded by the filesystem watcher).
+2. Installs the on-disk preset → `~/.dsh/.agent-presets/apple/` (existing copy is backed up).
+3. Generates the 10 Xcode AI skills **on your machine** via `xcrun agent skills export` into `~/.agents/skills/`.
 
 > **Why no vendored skills?** The skills are Apple-authored guidance. Generating them from your own Xcode at install time avoids redistributing Apple content — the repo ships only our own code, config, and docs.
 
+### Version compatibility
+
+DSH 0.2 renamed and reworked agent presets: a preset is now a `@deepseek-ai/dsh-agent-preset` **row declared by a bundle patch**, and the registry no longer scans directories.
+
+| DSH | Preset mechanism | How to get Apple Mode here |
+|---|---|---|
+| **0.2.0+** (desktop) | `@deepseek-ai/dsh-agent-preset` rows from a bundle patch | `dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"` |
+| **0.1.x** (older `npx`/brew) | on-disk directories under `~/.dsh/.agent-presets/<id>/` | `./install.sh` |
+
+Skills are discovered from `~/.agents/skills` on **both** versions, so `./install.sh --skills-only` works everywhere.
+
 ### Choosing an Xcode (multiple installs)
 
-If you have several Xcode versions (e.g. `Xcode.app`, `Xcode-beta.app`, `Xcode-26.2.app`), `mcpbridge` lives in each one's `Contents/Developer/usr/bin` — and only in Xcode 26+. `install.sh` scans `/Applications` for every install that provides it and prompts you to pick:
+If you have several Xcode versions (e.g. `Xcode.app`, `Xcode-beta.app`, `Xcode-26.2.app`), `mcpbridge` lives in each one's `Contents/Developer/usr/bin` — and only in Xcode 26+.
+
+**DSH 0.2.0+:** the preset's MCP row runs `xcrun mcpbridge`, so the Xcode comes from `xcode-select`:
+
+```sh
+sudo xcode-select -s /Applications/Xcode-26.2.app/Contents/Developer   # switch globally
+DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer dsh web  # or per launch
+```
+
+To drive a specific **running** Xcode instance, add `env: { MCP_XCODE_PID: '<pid>' }` to the `mcp-xcode` row inside the preset (edit `cordis.patch.yml` in this repo, or override the `preset-apple` row from your profile patch).
+
+**DSH 0.1.x:** `install.sh` scans `/Applications` for every install that provides `mcpbridge` and prompts you to pick:
 
 ```text
 Found Xcode installs providing mcpbridge:
@@ -59,17 +101,26 @@ Choose (1-2, default 1):
 - **Pick another** → the chosen `…/Contents/Developer/usr/bin/mcpbridge` is baked into the installed preset as an absolute path.
 - **Non-interactive**: `./install.sh --xcode /Applications/Xcode.app` (or `--xcode …/Contents/Developer`); `./install.sh --list-xcodes` prints the candidates.
 - **Switch at runtime without reinstalling**: `./install.sh --runtime-selectable` installs `bin/mcpbridge` as the command; set `DSH_XCODE_DEVELOPER_DIR=/Applications/…/Contents/Developer` when launching `dsh` to switch. (Resolution: `DSH_XCODE_DEVELOPER_DIR` → `xcrun` → newest `/Applications/Xcode*.app`.)
-- **Drive a specific running Xcode instance**: add `env: { MCP_XCODE_PID: '<pid>' }` to the `mcp-xcode` row of the installed preset.
 
 To change the choice later: re-run `./install.sh`, edit the `mcp-xcode` row in `~/.dsh/.agent-presets/apple/agent.cordis.yml`, or use the runtime env var above.
 
-### Alternative: global bundle (MCP in every session)
+### Alternative: global MCP wiring (MCP in every session)
 
-```sh
-dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
+The preset keeps the ~26 tool schemas scoped to Apple Mode sessions. To get the Xcode MCP tools in **every** session instead, insert the client row in your profile patch (`~/.dsh/profiles/<profile>/cordis.patch.yml`):
+
+```yaml
+- insert:
+    - id: mcp-xcode
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: xcode
+        transport: stdio
+        command: xcrun
+        args: ['mcpbridge']
+        toolCallTimeoutMs: 120000
 ```
 
-Installs the `cordis.patch.yml` bundle, which wires the Xcode MCP server into **every** session of the profile — no preset selection needed, at the cost of the tool-schema tokens in all sessions. **Use one install path, not both**: each registers `serverName: xcode`, and a duplicate server name fails the later instance at load. See [docs/global-mcp.md](docs/global-mcp.md).
+**Use one path, not both**: two live instances with `serverName: xcode` collide and the later one fails to load. See [docs/global-mcp.md](docs/global-mcp.md).
 
 ## Usage
 
@@ -110,7 +161,7 @@ Build/run/test still happen from the terminal (`xcodebuild`, pipe through [`xcsi
 .
 ├── presets/apple/            # The agent preset: agent.cordis.yml + preset.yml
 ├── bin/mcpbridge             # Runtime-selectable mcpbridge launcher (--runtime-selectable)
-├── cordis.patch.yml          # Global-MCP bundle patch (dsh plugin add)
+├── cordis.patch.yml          # Bundle patch: declares the Apple Mode preset (DSH 0.2+)
 ├── package.json              # Bundle manifest (dsh.bundle.patch)
 ├── docs/
 │   ├── XCODE_AI_INTEGRATION.md  # Full integration notes (Chinese)

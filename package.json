@@ -1,7 +1,7 @@
 {
   "name": "dsh-apple-mode",
-  "version": "0.1.0",
-  "description": "Xcode AI integration for DeepSeek Harness: 26 Xcode MCP tools (mcpbridge), Apple platform skills, Xcode Intelligence-style persona. Agent preset + global MCP bundle.",
+  "version": "1.1.0",
+  "description": "Apple Mode for DeepSeek Harness: an agent preset declaring 26 Xcode MCP tools (mcpbridge), Apple platform skills and an Xcode Intelligence-style persona. Requires DSH 0.2.0+ for the preset; DSH 0.1.x uses install.sh.",
   "license": "MIT",
   "dsh": {
     "bundle": {

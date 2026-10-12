@@ -1,20 +1,190 @@
-# dsh-apple-mode bundle patch — global Xcode MCP wiring.
+# dsh-apple-mode bundle patch — declares the "Apple Mode" agent preset.
 #
-# Installed via:  dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
-# Effect: every session gets the 26 mcp__xcode__* tools (global tools layer).
+# Requires DSH 0.2.0+. Agent presets are declared as @deepseek-ai/dsh-agent-preset
+# rows inside a bundle patch (the 0.2 registry does not scan directories); DSH 0.1.x
+# discovered on-disk presets under ~/.dsh/.agent-presets/ — use ./install.sh there.
 #
-# This is the GLOBAL variant. The mode-based (agent preset) install lives in
-# presets/apple/ and is installed by ./install.sh. Use ONE of the two, not
-# both: each registers serverName 'xcode', and a duplicate serverName fails
-# the later instance at load.
+# The preset composes the 0.2.0 `standard` row set plus:
+#   - an Apple-first, tool-assisted persona (adapted from Xcode Intelligence)
+#   - the Xcode MCP client (mcpbridge) -> mcp__xcode__* tools
 #
-# Requires Xcode 26+ on xcode-select (mcpbridge). To pin a specific Xcode
-# instance, add `env: { MCP_XCODE_PID: '<pid>' }` here.
-- id: mcp-xcode
-  name: '@deepseek-ai/dsh-mcp-client'
-  config:
-    serverName: xcode
-    transport: stdio
-    command: xcrun
-    args: ['mcpbridge']
-    toolCallTimeoutMs: 120000
+# Installed with the plugin manager; restart dsh after install or update.
+- insert:
+    - id: preset-apple
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: apple
+        order: 5
+        name: Apple Mode
+        description: Xcode AI integration — Xcode MCP tools (mcpbridge), Apple platform skills, and an Xcode Intelligence-style working style.
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              suffix: Your working directory is {{cwd}}.
+              prefix: |-
+                You are an Apple platform development specialist — a coding agent powered by the {{model}} model, with live access to an Xcode workspace through the mcp__xcode__* tool family.
+
+                ## Apple-first engineering
+
+                - Favor Apple programming languages, frameworks, and APIs available on Apple devices. Assume the user wants Swift unless they say otherwise; prefer Swift, Objective-C, C, and C++ over any alternative.
+                - Prefer Swift Concurrency (async/await, actors, etc.) over Dispatch or Combine, unless the user's code or words show a different preference.
+                - Refer to Apple platforms by their official names — iOS, iPadOS, macOS, watchOS, tvOS, visionOS — not product names. Respect the target platform: do not suggest iOS-only APIs for a Mac app, and vice versa.
+                - Prefer the modern Swift Testing framework (@Test / #expect / @Suite) unless the project is established on XCTest.
+                - Ground every symbol you emit in public, current API. Never invent API to make a snippet compile; never recommend underscore-prefixed or non-public symbols.
+
+                ## Tool-assisted working style (adapted from Xcode Intelligence)
+
+                - Classify each request: explain vs make changes. For changes, use tools to understand the problem, then implement directly with targeted edits — do not just propose text.
+                - When you must show revised code in prose, show complete files (never elided) using the ```swift:Filename convention; otherwise prefer precise targeted edits over pasting whole files.
+                - Do not write code that depends on types you have not seen: search the project first, then write once the interfaces are confirmed.
+                - Keep explanations concrete and structured, with small code snippets when helpful. Prefer Apple APIs and patterns already used in the project; avoid third-party packages unless asked.
+
+                ## Using the Xcode MCP tools (mcp__xcode__*)
+
+                - Project file access goes through the Xcode project organization: XcodeRead / XcodeWrite / XcodeUpdate / XcodeMV / XcodeRM / XcodeMakeDir; discover with XcodeGlob / XcodeGrep / XcodeLS.
+                - Never edit project.pbxproj by hand: use UpdateTargetBuildSetting and UpdateFileCompilerFlags for build settings.
+                - Diagnostics: XcodeListNavigatorIssues for the workspace's current errors/warnings, XcodeRefreshCodeIssuesInFile for a single file.
+                - Scheme / run destination / test plan: XcodeListSchemes, XcodeListRunDestinations, XcodeListTestPlans and their Switch counterparts; create targets with XcodeNewTarget (discover templates with XcodeListTemplates).
+                - Localization: StringCatalogRead / StringCatalogEdit — prefer literal LocalizedStringResource and typographically correct quotes.
+                - Build, run, and test from the terminal instead (xcodebuild piped through xcsift); the MCP toolset covers project surgery and diagnostics, not building.
+                - MCP calls are outside the file sandbox but still go through tool approval. Prefer MCP tools for anything touching the Xcode project structure, file tools for everything else.
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: command-goal
+            name: '@deepseek-ai/dsh-command-goal'
+          - id: tool-goal
+            name: '@deepseek-ai/dsh-tool-goal'
+          - id: planning
+            name: cordis:group
+            group: true
+            isolate:
+              planMode: true
+            config:
+              - id: plan-mode
+                name: '@deepseek-ai/dsh-plan-mode'
+                config:
+                  section: |
+                    You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+
+                    Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
+
+                    The tool catalog stays the same across modes for request-cache stability. These plan-mode rules override any later tool description or guidance that suggests using mutation tools; those tools remain listed to keep the tool catalog unchanged. Do not use todo_write to track this planning phase: it tracks implementation after an approved plan, while the plan itself belongs in exit_plan_mode.
+
+                    Resolve discoverable facts by inspection. Use ask_user_question only for user-owned choices or material ambiguity that inspection cannot answer. Do not ask the user where code lives or how current behavior works when you can find out.
+
+                    Make the plan decision-complete: state the goal and success criteria; group implementation changes by subsystem; identify public API, schema, and data-flow changes; cover edge cases, failure modes, tests, acceptance criteria, and explicit assumptions. Keep it concise enough to review but detailed enough that another engineer can implement it without making design decisions.
+
+                    When ready, call exit_plan_mode with the complete plan markdown, starting with a # title. Make exit_plan_mode the only and final tool call in that assistant response: it presents the plan for approval, and implementation begins only in a later step after approval. Do not paste the final plan as a plain reply or ask "should I proceed?" through prose or ask_user_question. If review rejects it, incorporate the feedback and present again. If the review channel is unavailable or aborted, stay in plan mode and ask the user to switch modes manually; do not proceed with implementation.
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+          - id: delegation
+            name: cordis:group
+            group: true
+            isolate:
+              workflowEngine: true
+            config:
+              - id: tool-subagent-control
+                name: '@deepseek-ai/dsh-tool-subagent-control'
+              - id: tool-subagent-list-agents
+                name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
+              - id: tool-subagent
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: spawn
+                  toolName: subagent
+                  modelSelectionSettings: true
+                  backgroundMode: continuable
+              - id: tool-subagent-fork
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: fork
+                  toolName: subagent_fork
+                  backgroundMode: continuable
+              - id: tool-subagent-codex
+                name: '@deepseek-ai/dsh-tool-subagent'
+                disabled: true
+                config:
+                  provider: codex
+                  toolName: subagent_codex
+                  backgroundMode: one-shot
+                  maxDepth: provider-managed
+              - id: tool-subagent-claude-code
+                name: '@deepseek-ai/dsh-tool-subagent'
+                disabled: true
+                config:
+                  provider: claude-code
+                  toolName: subagent_claude_code
+                  backgroundMode: one-shot
+                  maxDepth: provider-managed
+              - id: workflow-ptc
+                name: '@deepseek-ai/dsh-workflow-ptc'
+                config:
+                  provider: spawn
+              - id: tool-workflow
+                name: '@deepseek-ai/dsh-tool-workflow'
+              - id: tool-ralph
+                name: '@deepseek-ai/dsh-tool-ralph'
+                disabled: true
+                config:
+                  subagentProvider: spawn
+                  maxRounds: 64
+          - id: mcp-xcode
+            name: '@deepseek-ai/dsh-mcp-client'
+            config:
+              serverName: xcode
+              transport: stdio
+              command: xcrun
+              args: ['mcpbridge']
+              toolCallTimeoutMs: 120000
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
+          - id: tool-plugin-manager
+            name: '@deepseek-ai/dsh-plugin-manager/tools'
+            disabled: true

@@ -2,6 +2,11 @@
 
 把 Xcode 的三样 AI 能力接入 DeepSeek Harness（DSH）的分层方案与使用说明。
 
+> **⚠️ 版本变化（重要）**：DSH **0.2.0** 重做了 agent preset 机制——preset 变成 bundle patch 里声明的 `@deepseek-ai/dsh-agent-preset` 行，注册表**不再扫描目录**。因此：
+> - **0.2.0+（桌面端）**：本仓库的 `cordis.patch.yml`（bundle）通过插件管理器安装，声明 Apple Mode；`~/.dsh/.agent-presets/` 目录**不再被读取**。
+> - **0.1.x**：仍使用 `install.sh` 安装的磁盘目录 preset（下文"三、文件清单"描述的形态）。
+> - 技能发现根目录（`~/.agents/skills`）两版一致，`./install.sh --skills-only` 通用。
+
 ## 一、接入了什么
 
 | 层 | 能力 | 来源 | 接入方式 | 生效范围 |
@@ -34,15 +39,36 @@
 
 ## 三、文件清单
 
+**DSH 0.2.0+（推荐）**——仓库根目录的 `cordis.patch.yml`（bundle patch）：
+
+```yaml
+- insert:
+    - id: preset-apple
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: apple
+        order: 5
+        name: Apple Mode          # 模式显示名
+        description: ...
+        plugins:                  # 组合子行
+          - persona（改编自 Xcode Intelligence）
+          - …standard 0.2.0 的全量行…
+          - mcp-xcode（@deepseek-ai/dsh-mcp-client → xcrun mcpbridge）
+```
+
+- `plugins` 子行基于桌面端 `@deepseek-ai/dsh-web-app/presets/standard.patch.yml`（0.2.0），差异仅两处：`persona` 的 `prefix`、新增 `mcp-xcode` 行
+- **必须用 `- insert:` 包裹**：patch 里裸行是"按 id 覆盖已有行"，新增行不会生效
+
+**DSH 0.1.x（旧）**——`install.sh` 安装的磁盘目录：
+
 ```
 ~/.dsh/.agent-presets/apple/
-├── agent.cordis.yml   # 组合文件：改编 persona + mcp-xcode 行 + standard 全量工具
+├── agent.cordis.yml   # 组合文件：改编 persona + mcp-xcode 行 + 0.1.x standard 全量行
 └── preset.yml         # 显示元数据（名称：Apple Mode）
 ```
 
-- 基于 `node_modules/@deepseek-ai/dsh/config/agent-presets/standard/agent.cordis.yml` 复制
-- 与 standard 的差异仅两处：`persona` 文本（改编自 Xcode Intelligence 提示词）、新增 `mcp-xcode` 行
-- 升级 DSH 后若需对齐 standard 新增行：`diff` 两个文件手工合并
+- 基于 0.1.x 的 `node_modules/@deepseek-ai/dsh/config/agent-presets/standard/agent.cordis.yml` 复制
+- persona 使用字面量块标量 `|-`（`>-` 会把 bullet 行折叠成一行）
 
 ## 四、使用方法
 
@@ -56,10 +82,10 @@
 ## 五、验证与排障
 
 - 技能：`ls ~/.agents/skills/` 应有 15 个目录；会话技能目录里应看到 `app-intents-*` 等新技能
-- 预设发现：GUI 的 preset 列表在打开时会重新读取磁盘（无需重启），新预设立即出现
+- 模式可见性：0.2.0+ 由 bundle patch 的 `preset-apple` 行声明，安装/更新插件后**需重启 dsh**；0.1.x 的目录 preset 由 GUI 在打开列表时重新读取磁盘
 - MCP 连接失败不影响模式加载（`failOnStartupError: false`）；断线自动重连（指数退避）
-- 指定特定 Xcode 实例：在 `agent.cordis.yml` 的 `mcp-xcode` 行加 `env: { MCP_XCODE_PID: '<pid>' }`
-- 多 Xcode 共存：`install.sh` 会扫描并提示选择 mcpbridge 来源（`--xcode` 非交互）；`--runtime-selectable` 安装 `bin/mcpbridge` 启动器，之后用 `DSH_XCODE_DEVELOPER_DIR` 运行时切换
+- 指定特定 Xcode 实例：在 `mcp-xcode` 行加 `env: { MCP_XCODE_PID: '<pid>' }`
+- 多 Xcode 共存：0.2.0+ 用 `xcode-select -s` 或启动时 `DEVELOPER_DIR=…`；0.1.x 用 `install.sh` 的选择器（`--xcode` 非交互）、`--runtime-selectable` + `DSH_XCODE_DEVELOPER_DIR`
 - 工具调用超时已调至 120s（`toolCallTimeoutMs`）
 
 ## 六、安全注意

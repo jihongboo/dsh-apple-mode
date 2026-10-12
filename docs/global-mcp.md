@@ -1,53 +1,57 @@
-# Alternative: wire the Xcode MCP server into every session
+# Alternative: Xcode MCP tools in every session
 
-The preset in this repo mounts `dsh-mcp-client` **only for sessions that pick
-the Apple mode**, which keeps ~26 large tool schemas (~6k+ tokens/request)
-out of ordinary sessions. If you prefer the MCP tools available everywhere
-(e.g. you only ever work on Apple projects), use the global bundle instead.
+The plugin's bundle patch declares **Apple Mode** with the MCP client scoped to
+that preset, so ~26 large tool schemas (~6k+ tokens/request) are only paid by
+sessions that opt in. To get the Xcode MCP tools in **every** session instead,
+insert the client row at the profile level.
 
-## Global bundle (supported)
+## Profile patch (DSH 0.2.0+)
 
-This repo ships a bundle manifest (`package.json` → `cordis.patch.yml`) that
-wires the server into every session of the profile:
-
-```sh
-dsh plugin --profile web add "github:jihongboo/dsh-apple-mode"
-```
-
-Restart `dsh --profile web`. Every session gets the `mcp__xcode__*` tools,
-regardless of preset. The bundle content is exactly:
+Append to `~/.dsh/profiles/<profile>/cordis.patch.yml` (for the web profile:
+`~/.dsh/profiles/web/cordis.patch.yml`):
 
 ```yaml
-# cordis.patch.yml in this repo
-- id: mcp-xcode
-  name: '@deepseek-ai/dsh-mcp-client'
-  config:
-    serverName: xcode
-    transport: stdio
-    command: xcrun
-    args: ['mcpbridge']
-    toolCallTimeoutMs: 120000
+- insert:
+    - id: mcp-xcode
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: xcode
+        transport: stdio
+        command: xcrun
+        args: ['mcpbridge']
+        toolCallTimeoutMs: 120000
 ```
 
-## Manual profile patch (equivalent)
+Then restart DSH. Every session gets the `mcp__xcode__*` tools, regardless of
+preset.
 
-Add the same row to `~/.dsh/profiles/web/cordis.patch.yml` if you do not want
-to install the bundle package.
+> The `- insert:` wrapper matters: a patch row **without** it targets an
+> existing row by `id` and only overrides its config — an id that does not
+> exist yet is silently ignored. See the loader docs for the patch semantics.
+
+## Use one path, not both
+
+Two live `dsh-mcp-client` instances with the same `serverName: xcode` collide —
+the later one fails to load. If you add the global row, remove `mcp-xcode` from
+the preset (edit `cordis.patch.yml` in this repo, or override the `preset-apple`
+row from your profile patch).
 
 ## Trade-offs
 
-- **+** No need to select a preset; tools are always present.
+- **+** No need to select a preset; the tools are always present.
 - **−** Every session pays the tool-schema token cost (roughly +6k tokens per
   request before compaction, per our measurements).
-- **−** The Xcode Intelligence persona still lives in the preset; the global
-  wiring only adds the tools.
+- **−** The Xcode Intelligence-style persona still lives in the preset; the
+  global row only adds the tools.
 
-## Notes
+## Picking which Xcode
 
-- **Use one install path, not both.** The bundle and the preset each register
-  `serverName: xcode`; a duplicate `serverName` fails the later instance at
-  load. If you want both the mode persona and global tools, remove the
-  `mcp-xcode` row from `presets/apple/agent.cordis.yml` before installing the
-  bundle.
-- Requires Xcode 26+ on `xcode-select`; set `MCP_XCODE_PID` via `env` to pin a
-  specific Xcode instance.
+`command: xcrun` follows `xcode-select`. Switch globally with
+`sudo xcode-select -s <Xcode.app>/Contents/Developer`, or per launch with
+`DEVELOPER_DIR=<Xcode.app>/Contents/Developer dsh web`. To drive a specific
+**running** Xcode instance, add `env: { MCP_XCODE_PID: '<pid>' }`.
+
+## DSH 0.1.x
+
+The same `- insert:` row works there; the on-disk preset mechanism in
+`install.sh` is what differs. See the README's version compatibility table.
